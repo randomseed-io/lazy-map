@@ -32,14 +32,14 @@ To use lazy-map in your project, add the following to dependencies section of
 `project.clj` or `build.boot`:
 
 ```clojure
-[io.randomseed/lazy-map "1.0.0"]
+[io.randomseed/lazy-map "1.0.1"]
 ```
 
 For `deps.edn` add the following as an element of a map under `:deps` or
 `:extra-deps` key:
 
 ```clojure
-io.randomseed/lazy-map {:mvn/version "1.0.0"}
+io.randomseed/lazy-map {:mvn/version "1.0.1"}
 ```
 
 Additionally, if you want to utilize specs and generators provided by the lazy-map
@@ -140,7 +140,7 @@ special pretty-print dispatch function:
 Check out the [unit tests] for more information on the exact behavior
 of lazy maps.
 
-[unit tests]: test/lazy_map/core_test.clj
+[unit tests]: test/io/randomseed/lazy_map_test.clj
 
 ## Organization
 
