@@ -1,11 +1,16 @@
 SHELL   := /bin/sh
 BUILD   := bin/build
+DEPLOY  := bin/deploy
 VERSION := $(shell awk 'NF{print $$1; exit}' VERSION)
 
 APPNAME ?= lazy-map
 
 POMFILE := pom.xml
 JARFILE := target/$(APPNAME)-$(VERSION).jar
+
+MVN_SYS_PROPS = \
+  -Daether.checksums.forSignature=true \
+  -Daether.checksums.algorithms=SHA-1,MD5
 
 .PHONY: default lint docs push-docs \
         test test-full \
@@ -56,8 +61,19 @@ sig:
 
 deploy: clean pom jar
 	@echo "[deploy]"
-	@mvn -Daether.checksums.omitChecksumsForExtensions= \
-	  gpg:sign-and-deploy-file \
+	@test -f "$(JARFILE)" || (echo "Missing $(JARFILE)"; exit 1)
+	@test -f "pom.xml" || (echo "Missing pom.xml"; exit 1)
+	@echo "[deploy] jar=$(JARFILE)"
+	@$(DEPLOY) deploy :artifact "\"$(JARFILE)\""
+
+olddeploy: clean pom jar
+	@echo "[deploy]"
+	@echo "[deploy] MVN_SYS_PROPS=$(MVN_SYS_PROPS)"
+	@mvn $(MVN_SYS_PROPS) gpg:sign-and-deploy-file \
+	  -DgroupId=io.randomseed \
+	  -DartifactId=$(APPNAME) \
+	  -Dversion=$(VERSION) \
+	  -Dpackaging=jar \
 	  -Dfile=$(JARFILE) \
 	  -DpomFile=$(POMFILE) \
 	  -DrepositoryId=clojars \
