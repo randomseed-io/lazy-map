@@ -1,10 +1,10 @@
 (ns io.randomseed.lazy-map-test
 
-  (:require [lazy-map       :refer :all]
-            [clojure.test   :refer :all]
-            [clojure.pprint :as      pp])
+  (:require [io.randomseed.lazy-map :refer :all]
+            [clojure.test           :refer :all]
+            [clojure.pprint         :as      pp])
 
-  (:import [lazy_map LazyMap]))
+  (:import [io.randomseed.lazy_map LazyMap]))
 
 (defmacro error
   [& [msg]]
