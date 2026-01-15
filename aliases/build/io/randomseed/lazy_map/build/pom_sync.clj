@@ -6,8 +6,14 @@
 
 (defn- read-edn-file
   [path]
-  (with-open [r (io/reader path)]
+  (with-open [r (java.io.PushbackReader. (io/reader path))]
     (edn/read {:readers *data-readers*} r)))
+
+(defn- strip-xml-declaration
+  [s]
+  (-> s
+      (str/replace #"(?s)^\s*<\?xml[^>]*\?>\s*" "")
+      str/trim))
 
 (defn- lib->ga
   "deps.edn lib symbol (group/artifact) -> [groupId artifactId]."
@@ -91,10 +97,11 @@
 (defn render-dependencies-xml
   "Renders a <dependencies>...</dependencies> XML string for given dep specs."
   [dep-specs]
-  (xml/emit-str
-   {:tag     :dependencies
-    :attrs   nil
-    :content (mapv dependency-node dep-specs)}))
+  (strip-xml-declaration
+   (xml/emit-str
+    {:tag     :dependencies
+     :attrs   nil
+     :content (mapv dependency-node dep-specs)})))
 
 (defn- indent-block
   "Prefixes every non-empty line in s with indent."
@@ -113,14 +120,14 @@
 
    Throws if </project> not found."
   [pom-text deps-xml]
-  (let [deps-re-m #"(?s)(?m)(^[ \t]*)<dependencies\b.*?</dependencies>[ \t]*\r?\n?"
+  (let [deps-re-m #"(?s)(?m)(^[ \t]*)<dependencies\b[^>]*(?:/>|>.*?</dependencies>)[ \t]*\r?\n?"
         m         (re-find deps-re-m pom-text)]
     (if m
       (let [indent (nth m 1)
             repl   (str (indent-block indent deps-xml) "\n")]
         (str/replace-first pom-text deps-re-m repl))
       (let [proj-close-re #"(?m)^([ \t]*)</project>[ \t]*\r?$"
-            m2           (re-find proj-close-re pom-text)]
+            m2            (re-find proj-close-re pom-text)]
         (when-not m2
           (throw (ex-info "Cannot insert <dependencies>: missing </project> in pom.xml" {})))
         (let [indent-close   (nth m2 1)
