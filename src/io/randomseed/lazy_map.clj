@@ -7,7 +7,6 @@
   `freeze-map`, `lazy-map-dispatch`."
 
   (:require [clojure.pprint :as pp])
-
   (:import java.io.Writer))
 
 ;;;; Utility functions
@@ -66,6 +65,25 @@
 (extend-print PlaceholderText :text)
 
 ;;;; LazyMapEntry type
+
+(defn- seq2?
+  "Helper to check if the sequable has 2 elements."
+  [o]
+  (when (instance? clojure.lang.Seqable o)
+    (let [s (seq o)]
+      (when (and s (next s) (nil? (next (next s))))
+        s))))
+
+(defn- entry-eq-target
+  "Returns `o` (unchanged) when it's a safe equality target for a map-entry,
+   or returns a 2-element seq for seqables, or nil when not comparable."
+  [o]
+  (cond
+    (instance? clojure.lang.IMapEntry o)                               o
+    (instance? java.util.Map$Entry    o)                               o
+    (and (instance? clojure.lang.IPersistentVector o) (= 2 (count o))) o
+    (and (instance? java.util.List o) (= 2 (.size ^java.util.List o))) o
+    :else                                                              (seq2? o))) ; 2-el. seq or nil
 
 (deftype LazyMapEntry [key_ val_]
 
@@ -136,11 +154,15 @@
   clojure.lang.IPersistentCollection
 
   (count [_] 2)
+
   (empty [_] false)
+
   (equiv [_ o]
-    (.equiv
-     [key_ (force val_)]
-     o))
+    (cond (nil?   o) false
+          (ident? o) false
+          :else      (if-let [t (entry-eq-target o)]
+                       (.equiv [key_ (force val_)] t)
+                       false)))
 
   clojure.lang.IPersistentStack
 
@@ -277,12 +299,17 @@
   (empty [_]
     (or (not contents)
         (.empty contents)))
+
   (cons [_ o]
     (LazyMap. (.cons (or contents {}) o)))
+
   (equiv [this o]
-    (.equiv
-      ^clojure.lang.IPersistentCollection
-      (into {} this) o))
+    (if (or (instance? clojure.lang.IPersistentMap o)
+            (instance? java.util.Map o))
+      (.equiv
+       ^clojure.lang.IPersistentCollection
+       (into {} this) o)
+      false))
 
   clojure.lang.IPersistentMap
 
@@ -310,6 +337,9 @@
 
   java.lang.Object
 
+  (equals [this o]
+    (.equiv this o))
+
   (toString [this]
     (str (freeze-map (->PlaceholderText "<unrealized>") this))))
 
@@ -327,7 +357,7 @@
   map, returns it directly. This prevents the creation of a lazy map
   wrapping another lazy map, which (while not terribly wrong) is not
   the best idea."
-  [map]
+  ^LazyMap [map]
   (if (instance? LazyMap map)
     map
     (->LazyMap map)))

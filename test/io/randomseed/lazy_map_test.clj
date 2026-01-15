@@ -4,7 +4,13 @@
             [clojure.test           :refer :all]
             [clojure.pprint         :as      pp])
 
-  (:import [io.randomseed.lazy_map LazyMap]))
+  (:import [io.randomseed.lazy_map LazyMap LazyMapEntry]))
+
+(defn- touch!
+  "Marks forced? and returns v. Meant to be wrapped by (delay ...) e.g. via lazy-map macro."
+  [forced? v]
+  (reset! forced? true)
+  v)
 
 (defmacro error
   [& [msg]]
@@ -45,41 +51,41 @@
            50))
     (is (= (with-out-str
              (:c (->LazyMap
-                   {:a (delay (error "value :a should not be realized"))
-                    :b 50
-                    :c (delay (print "value :c was realized"))})))
+                  {:a (delay (error "value :a should not be realized"))
+                   :b 50
+                   :c (delay (print "value :c was realized"))})))
            "value :c was realized")))
   (testing "lazy maps can be called as fns"
     (is (= (let [m (->LazyMap
-                     {:a 1
-                      :b 2})]
+                    {:a 1
+                     :b 2})]
              (m :b))
            2)))
   (testing "keys and vals work on lazy maps"
     (is (= (set
-             (keys (make-lazy-map)))
+            (keys (make-lazy-map)))
            #{:a :b :c}))
     (is (= (->> (->LazyMap
-                  {:a (delay (println "value :a was realized"))
-                   :b (delay (println "value :b was realized"))
-                   :c (delay (println "value :c was realized"))})
-             (vals)
-             (take 2)
-             (dorun)
-             (with-out-str)
-             (re-seq #"value :[a-c] was realized")
-             (count))
+                 {:a (delay (println "value :a was realized"))
+                  :b (delay (println "value :b was realized"))
+                  :c (delay (println "value :c was realized"))})
+                (vals)
+                (take 2)
+                (dorun)
+                (with-out-str)
+                (re-seq #"value :[a-c] was realized")
+                (count))
            2)))
   (testing "assoc and dissoc work with lazy maps"
     (is (= (-> (make-lazy-map)
-             (assoc :d (delay (error "value :d should not be realized")))
-             (keys)
-             (set))
+               (assoc :d (delay (error "value :d should not be realized")))
+               (keys)
+               (set))
            #{:a :b :c :d}))
     (is (= (-> (make-lazy-map)
-             (dissoc :a :b)
-             (keys)
-             (set))
+               (dissoc :a :b)
+               (keys)
+               (set))
            #{:c})))
   (testing "lazy maps support default value for lookup"
     (is (= (:d (make-lazy-map) :default)
@@ -88,13 +94,13 @@
            :default)))
   (testing "seqs for lazy maps do not contain delays"
     (is (= (set (->LazyMap
-                  {:a 1
-                   :b (delay 2)}))
+                 {:a 1
+                  :b (delay 2)}))
            #{[:a 1] [:b 2]})))
   (testing "equality for lazy maps"
     (is (= (->LazyMap
-             {:a 1
-              :b (delay 2)})
+            {:a 1
+             :b (delay 2)})
            {:a 1
             :b 2})))
   (testing "reduce and kv-reduce for lazy maps"
@@ -102,15 +108,15 @@
                      (assoc m k v))
                    {}
                    (->LazyMap
-                     {:a 1
-                      :b (delay 2)}))
+                    {:a 1
+                     :b (delay 2)}))
            {:a 1 :b 2}))
     (is (= (reduce-kv (fn [m k v]
                         (assoc m k v))
                       {}
                       (->LazyMap
-                        {:a 1
-                         :b (delay 2)}))
+                       {:a 1
+                        :b (delay 2)}))
            {:a 1 :b 2})))
   (testing "str representation of lazy maps"
     (is (= (str (->LazyMap {:a 1}))
@@ -155,29 +161,91 @@
   (testing "lazy-map macro"
     (is (= (with-out-str
              (let [m (lazy-map
-                       {:a (println "value :a was realized")
-                        :b (println "value :b was realized")
-                        :c (println "value :c was realized")})]
+                      {:a (println "value :a was realized")
+                       :b (println "value :b was realized")
+                       :c (println "value :c was realized")})]
                (doseq [k [:b :c]]
                  (k m))))
            (format "value :b was realized%nvalue :c was realized%n"))))
   (testing "forcing a lazy map"
     (is (= (->> (lazy-map
-                  {:a (println "value :a was realized")
-                   :b (println "value :b was realized")})
-             (force-map)
-             (with-out-str)
-             (re-seq #"value :[ab] was realized")
-             (set))
+                 {:a (println "value :a was realized")
+                  :b (println "value :b was realized")})
+                (force-map)
+                (with-out-str)
+                (re-seq #"value :[ab] was realized")
+                (set))
            #{"value :a was realized" "value :b was realized"})))
   (testing "freezing a lazy map"
     (= (->> (make-lazy-map)
-         (freeze-map :foo))
+            (freeze-map :foo))
        {:a :foo
         :b 50
         :c :foo})
     (= (->> (make-lazy-map)
-         (freeze-map name))
+            (freeze-map name))
        {:a "a"
         :b 50
         :c "c"})))
+
+(deftest equiv-does-not-realize-unless-needed
+  (testing "LazyMap: non-map comparisons short-circuit without realization"
+    (let [forced? (atom false)
+          m       (lazy-map {:a (touch! forced? 1)})]
+      (is (false? (= m ::sentinel)))
+      (is (false? @forced?))
+
+      (is (false? (= m 123)))
+      (is (false? @forced?))
+
+      (is (false? (= m "nope")))
+      (is (false? @forced?))
+
+      (is (false? (= m nil)))
+      (is (false? @forced?))))
+
+  (testing "LazyMap: comparing to a map may realize"
+    (let [forced? (atom false)
+          m       (lazy-map {:a (touch! forced? 1)})]
+      (is (true? (= m {:a 1})))
+      (is (true? @forced?))))
+
+  (testing "LazyMapEntry: sentinel/scalars/keywords/nil short-circuit without realization"
+    (let [forced? (atom false)
+          m       (lazy-map {:a (touch! forced? 1)})
+          e       (first m)]
+      (is (false? (= e ::sentinel)))
+      (is (false? @forced?))
+
+      (is (false? (= e 123)))
+      (is (false? @forced?))
+
+      (is (false? (= e :k)))
+      (is (false? @forced?))
+
+      (is (false? (= e nil)))
+      (is (false? @forced?))))
+
+  (testing "LazyMapEntry: 2-element vector is allowed and realizes"
+    (let [forced? (atom false)
+          m       (lazy-map {:a (touch! forced? 1)})
+          e       (first m)]
+      (is (true? (= e [:a 1])))
+      (is (true? @forced?))))
+
+  (testing "LazyMapEntry: 2-element list is allowed and realizes"
+    (let [forced? (atom false)
+          m       (lazy-map {:a (touch! forced? 1)})
+          e       (first m)]
+      (is (true? (= e (list :a 1))))
+      (is (true? @forced?))))
+
+  (testing "LazyMapEntry: non-2-element seq short-circuits without realization"
+    (let [forced? (atom false)
+          m       (lazy-map {:a (touch! forced? 1)})
+          e       (first m)]
+      (is (false? (= e (list :a 1 2))))
+      (is (false? @forced?))
+
+      (is (false? (= e '())))
+      (is (false? @forced?)))))
