@@ -46,6 +46,7 @@ pom: clean
 
 jar: pom
 	@echo "[jar]"
+	@rm -rf target/classes
 	$(BUILD) jar
 
 sig:
