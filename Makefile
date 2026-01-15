@@ -48,7 +48,7 @@ jar: pom
 	@echo "[jar]"
 	$(BUILD) jar
 
-sig: pom
+sig:
 	@echo "[sig]"
 	@rm -f $(POMFILE).asc
 	@gpg2 --armor --detach-sig $(POMFILE)
@@ -62,7 +62,7 @@ deploy: clean pom jar
 	  -DrepositoryId=clojars \
 	  -Durl=https://repo.clojars.org/
 
-tag: pom
+tag:
 	git tag -s "$(VERSION)" -m "Release $(VERSION)"
 
 clean:
