@@ -1,8 +1,10 @@
-(ns lazy-map.core-test
-  (:require [lazy-map.core :refer :all]
-            [clojure.test :refer :all]
-            [clojure.pprint :as pp])
-  (:import [lazy_map.core LazyMap]))
+(ns io.randomseed.lazy-map-test
+
+  (:require [lazy-map       :refer :all]
+            [clojure.test   :refer :all]
+            [clojure.pprint :as      pp])
+
+  (:import [lazy_map LazyMap]))
 
 (defmacro error
   [& [msg]]
