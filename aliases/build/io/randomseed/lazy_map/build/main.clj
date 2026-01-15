@@ -7,6 +7,7 @@
             [juxt.pack.api                         :as     pack]))
 
 (def ^:private LIB 'io.randomseed/lazy-map)
+(def ^:private AOT_NS ['io.randomseed.lazy-map])
 
 (defn- first-nonblank-line
   [path]
@@ -34,19 +35,30 @@
                            {:name LIB
                             :local-root-version local-root-version}))
 
-(defn jar
+(defn jar-old
   "Sync POM deps and build jar.
    - clojure -T:build jar
    - clojure -T:build jar :jar \"target/custom.jar\""
   [{:keys [jar local-root-version]
-    :or   {jar DEFAULT_JAR
+    :or   {jar                DEFAULT_JAR
            local-root-version "${project.version}"}}]
   (io/make-parents (io/file jar))
-  (sync-pom {:local-root-version local-root-version})
+  ;; (sync-pom {:local-root-version local-root-version}) ; moved to Makefile as separate target
   (pack/library {:basis (b/create-basis {:project "deps.edn"})
                  :path  jar
                  :lib   LIB
                  :pom   (io/input-stream (io/file "pom.xml"))}))
+
+(defn jar [_]
+  (let [class-dir "target/classes"]
+    (b/delete {:path "target"})
+    (b/copy-dir    {:src-dirs   ["src" "resources"]
+                    :target-dir class-dir})
+    (b/compile-clj {:basis      (b/create-basis {:project "deps.edn"})
+                    :class-dir  class-dir
+                    :ns-compile AOT_NS})
+    (b/jar         {:class-dir class-dir
+                    :jar-file  (str "target/lazy-map-" version ".jar")})))
 
 (defn -main [& _]
   (jar nil))
