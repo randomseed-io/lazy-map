@@ -65,6 +65,7 @@ deploy: clean pom jar
 	@test -f "pom.xml" || (echo "Missing pom.xml"; exit 1)
 	@echo "[deploy] jar=$(JARFILE)"
 	@$(DEPLOY) deploy :artifact "\"$(JARFILE)\""
+	@test -f "$(APPNAME)-$(VERSION).pom.asc" && mv -f "$(APPNAME)-$(VERSION).pom.asc" "$(POMFILE).asc" || true
 
 olddeploy: clean pom jar
 	@echo "[deploy]"
@@ -83,5 +84,5 @@ tag:
 	git tag -s "$(VERSION)" -m "Release $(VERSION)"
 
 clean:
-	rm -f target/*.jar $(POMFILE).asc
-	find . -name .DS_Store -print0 | xargs -0 rm -f
+	@rm -f target/*.jar $(POMFILE).asc
+	@find . -name .DS_Store -print0 | xargs -0 rm -f
