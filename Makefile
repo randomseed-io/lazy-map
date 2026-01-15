@@ -55,11 +55,12 @@ sig: pom
 
 deploy: clean pom jar
 	@echo "[deploy]"
-	@mvn gpg:sign-and-deploy-file \
+	@mvn -Daether.checksums.omitChecksumsForExtensions= \
+	  gpg:sign-and-deploy-file \
 	  -Dfile=$(JARFILE) \
 	  -DpomFile=$(POMFILE) \
 	  -DrepositoryId=clojars \
-	  -Durl=https://clojars.org/repo
+	  -Durl=https://repo.clojars.org/
 
 tag: pom
 	git tag -s "$(VERSION)" -m "Release $(VERSION)"
