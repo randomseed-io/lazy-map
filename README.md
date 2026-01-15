@@ -13,15 +13,18 @@ maps act just like regular (persistent) maps, except that their values
 are not computed until they are requested.
 
 It is based on code from [raxod502](https://github.com/raxod502/lazy-map)
-with 2 important changes:
+with e important changes:
 
-* Equality method is modified to only compare maps. That prevents from
-  unwanted realization of values when lazy map is compared with booleans,
-  keywords and other objects which will always be different from a lazy map
-  without a need to realize its values.
+* Equality method is modified to **only compare maps**. That prevents from unwanted
+  realization of values when lazy map is compared with booleans, keywords and other
+  not map-like objects which will always be different from a lazy map, without a need
+  to realize its values.
 
-* Namespace is set to `io.randomseed.lazy-map` and artifact `io.randomseed/lazy-map`
-  to avoid collisions (many lazy map packages are published as `lazy-map/lazy-map`.
+* **Namespace is set to `io.randomseed.lazy-map`** and artifact to
+  `io.randomseed/lazy-map` to prevent collisions (many lazy map packages are
+  published as `lazy-map/lazy-map`.
+
+* JAR contains **compiled Java classes** to expose types.
 
 ## Installation
 
