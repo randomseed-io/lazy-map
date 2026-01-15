@@ -1,4 +1,5 @@
 (ns io.randomseed.lazy-map.build.pom-sync
+
   (:require [clojure.data.xml :as xml]
             [clojure.edn      :as edn]
             [clojure.java.io  :as io]
@@ -14,6 +15,11 @@
   (-> s
       (str/replace #"(?s)^\s*<\?xml[^>]*\?>\s*" "")
       str/trim))
+
+(defn- provided-scope?
+  [{:keys [groupId artifactId]}]
+  (and (= groupId "org.clojure")
+       (= artifactId "clojure")))
 
 (defn- lib->ga
   "deps.edn lib symbol (group/artifact) -> [groupId artifactId]."
@@ -79,8 +85,10 @@
      (->> deps
           (keep (fn [[lib coord]]
                   (when-let [v (coord->version lib coord (or opts {}))]
-                    (let [[g a] (lib->ga lib)]
-                      {:groupId g :artifactId a :version v}))))
+                    (let [[g a] (lib->ga lib)
+                          dep   {:groupId g :artifactId a :version v}]
+                      (cond-> dep
+                        (provided-scope? dep) (assoc :scope "provided"))))))
           (sort-by (juxt :groupId :artifactId))
           vec))))
 
