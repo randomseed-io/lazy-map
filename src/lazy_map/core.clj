@@ -1,19 +1,20 @@
-(ns lazy-map.core
+(ns io.randomseed.lazy-map
+
   "Main namespace, contains utility functions, type definitions, and
   lazy map functions.
 
   Public API is `->LazyMap`, `->?LazyMap`, `lazy-map`, `force-map`,
   `freeze-map`, `lazy-map-dispatch`."
-  (:require [clojure
-             [pprint :as pp]
-             [string :as str]])
+
+  (:require [clojure.pprint :as pp])
+
   (:import java.io.Writer))
 
 ;;;; Utility functions
 
 (defmacro is-not-thrown?
-  "Used in clojure.test assertions because (is (not (thrown? ...)))
-  doesn't work. See http://acidwords.com/posts/2015-07-23-fixing-negation-in-clojure-test.html"
+  "Used in clojure.test assertions because (is (not (thrown? ...)))  doesn't work. See
+  http://acidwords.com/posts/2015-07-23-fixing-negation-in-clojure-test.html"
   [e expr]
   {:style/indent 1}
   `(is (not ('thrown? ~e ~expr))))
@@ -69,111 +70,129 @@
 (deftype LazyMapEntry [key_ val_]
 
   clojure.lang.Associative
-  (containsKey [this k]
+
+  (containsKey [_ k]
     (boolean (#{0 1} k)))
-  (entryAt [this k]
+
+  (entryAt [_ k]
     (cond
       (= k 0) (map-entry 0 key_)
       (= k 1) (LazyMapEntry. 1 val_)
-      :else nil))
-  (assoc [this k v]
+      :else   nil))
+
+  (assoc [_ k v]
     (cond
       (= k 0) (LazyMapEntry. v val_)
       (= k 1) (LazyMapEntry. key_ v)
       (= k 2) (vector k (force val_) v)
-      :else (throw (IndexOutOfBoundsException.))))
+      :else   (throw (IndexOutOfBoundsException.))))
 
   clojure.lang.IFn
+
   (invoke [this k]
     (.valAt this k))
 
   clojure.lang.IHashEq
-  (hasheq [this]
+
+  (hasheq [_]
     (.hasheq
-      ^clojure.lang.IHashEq
-      (vector key_ (force val_))))
+     ^clojure.lang.IHashEq
+     (vector key_ (force val_))))
 
   clojure.lang.ILookup
-  (valAt [this k]
+
+  (valAt [_ k]
     (cond
       (= k 0) key_
       (= k 1) (force val_)
-      :else nil))
-  (valAt [this k not-found]
+      :else   nil))
+
+  (valAt [_ k not-found]
     (cond
       (= k 0) key_
       (= k 1) (force val_)
-      :else not-found))
+      :else   not-found))
 
   clojure.lang.IMapEntry
-  (key [this] key_)
-  (val [this] (force val_))
+
+  (key [_] key_)
+  (val [_] (force val_))
 
   clojure.lang.Indexed
+
   (nth [this i]
     (cond
-      (= i 0) key_
-      (= i 1) (force val_)
+      (= i 0)      key_
+      (= i 1)      (force val_)
       (integer? i) (throw (IndexOutOfBoundsException.))
-      :else (throw (IllegalArgumentException. "Key must be integer")))
+      :else        (throw (IllegalArgumentException. "Key must be integer")))
     (.valAt this i))
+
   (nth [this i not-found]
     (try
       (.nth this i)
       (catch Exception _ not-found)))
 
   clojure.lang.IPersistentCollection
-  (count [this] 2)
-  (empty [this] false)
-  (equiv [this o]
+
+  (count [_] 2)
+  (empty [_] false)
+  (equiv [_ o]
     (.equiv
-      [key_ (force val_)]
-      o))
+     [key_ (force val_)]
+     o))
 
   clojure.lang.IPersistentStack
-  (peek [this] (force val_))
-  (pop [this] [key_])
+
+  (peek [_] (force val_))
+  (pop [_] [key_])
 
   clojure.lang.IPersistentVector
-  (assocN [this i v]
+
+  (assocN [_ i v]
     (.assocN [key_ (force val_)] i v))
-  (cons [this o]
+
+  (cons [_ o]
     (.cons [key_ (force val_)] o))
 
   clojure.lang.Reversible
-  (rseq [this] (lazy-seq (list (force val_) key_)))
+
+  (rseq [_] (lazy-seq (list (force val_) key_)))
 
   clojure.lang.Seqable
-  (seq [this]
+
+  (seq [_]
     (cons key_ (lazy-seq (list (force val_)))))
 
   clojure.lang.Sequential
-
   java.io.Serializable
-
   java.lang.Comparable
-  (compareTo [this o]
+
+  (compareTo [_ o]
     (.compareTo
-      ^java.lang.Comparable
-      (vector key_ (force val_))
-      o))
+     ^java.lang.Comparable
+     (vector key_ (force val_))
+     o))
 
   java.lang.Iterable
+
   (iterator [this]
     (.iterator
-      ^java.lang.Iterable
-      (.seq this)))
+     ^java.lang.Iterable
+     (.seq this)))
 
   java.lang.Object
-  (toString [this]
+
+  (toString [_]
     (str [key_ (if (and (delay? val_)
                         (not (realized? val_)))
                  (->PlaceholderText "<unrealized>")
                  (force val_))]))
 
   java.util.Map$Entry
-  (getKey [this] key_)
-  (getValue [this] (force val_))
+
+  (getKey [_] key_)
+  (getValue [_] (force val_))
 
   java.util.RandomAccess)
 
@@ -181,7 +200,7 @@
   "Construct a lazy map entry with the given key and value. If you
   want to take advantage of the laziness, the value should be a
   delay."
-  [k v]
+  ^LazyMapEntry [k v]
   (LazyMapEntry. k v))
 
 (extend-print LazyMapEntry #(.toString ^LazyMapEntry %))
@@ -192,61 +211,73 @@
 ;; before the deftype. But the definition of this function needs a
 ;; ^LazyMap type hint, so the definition can't come until after the
 ;; deftype.
+
 (declare freeze-map)
 
 (deftype LazyMap [^clojure.lang.IPersistentMap contents]
 
   clojure.lang.Associative
-  (containsKey [this k]
+
+  (containsKey [_ k]
     (and contents
          (.containsKey contents k)))
-  (entryAt [this k]
+
+  (entryAt [_ k]
     (and contents
          (lazy-map-entry k (.valAt contents k))))
 
   clojure.lang.IFn
+
   (invoke [this k]
     (.valAt this k))
+
   (invoke [this k not-found]
     (.valAt this k not-found))
 
   clojure.lang.IKVReduce
+
   (kvreduce [this f init]
     (reduce-kv f init (into {} this)))
 
   clojure.lang.ILookup
-  (valAt [this k]
+
+  (valAt [_ k]
     (and contents
          (force (.valAt contents k))))
-  (valAt [this k not-found]
+
+  (valAt [_ k not-found]
     ;; This will not behave properly if not-found is a Delay,
     ;; but that's a pretty obscure edge case.
     (and contents
          (force (.valAt contents k not-found))))
 
   clojure.lang.IMapIterable
-  (keyIterator [this]
+
+  (keyIterator [_]
     (.iterator
-      ^java.lang.Iterable
-      (keys contents)))
-  (valIterator [this]
+     ^java.lang.Iterable
+     (keys contents)))
+
+  (valIterator [_]
     (.iterator
-      ;; Using the higher-arity form of map prevents chunking.
-      ^java.lang.Iterable
-      (map (fn [[k v] _]
-             (force v))
-           contents
-           (repeat nil))))
+     ;; Using the higher-arity form of map prevents chunking.
+     ^java.lang.Iterable
+     (map (fn [[_ v] _]
+            (force v))
+          contents
+          (repeat nil))))
 
   clojure.lang.IPersistentCollection
-  (count [this]
+
+  (count [_]
     (if contents
       (.count contents)
       0))
-  (empty [this]
+
+  (empty [_]
     (or (not contents)
         (.empty contents)))
-  (cons [this o]
+  (cons [_ o]
     (LazyMap. (.cons (or contents {}) o)))
   (equiv [this o]
     (.equiv
@@ -254,13 +285,16 @@
       (into {} this) o))
 
   clojure.lang.IPersistentMap
-  (assoc [this key val]
+
+  (assoc [_ key val]
     (LazyMap. (.assoc (or contents {}) key val)))
-  (without [this key]
+
+  (without [_ key]
     (LazyMap. (.without (or contents {}) key)))
 
   clojure.lang.Seqable
-  (seq [this]
+
+  (seq [_]
     ;; Using the higher-arity form of map prevents chunking.
     (map (fn [[k v] _]
            (lazy-map-entry k v))
@@ -268,12 +302,14 @@
          (repeat nil)))
 
   java.lang.Iterable
+
   (iterator [this]
     (.iterator
-      ^java.lang.Iterable
-      (.seq this)))
+     ^java.lang.Iterable
+     (.seq this)))
 
   java.lang.Object
+
   (toString [this]
     (str (freeze-map (->PlaceholderText "<unrealized>") this))))
 
@@ -336,14 +372,16 @@
   (cond
     (instance? LazyMap obj)
     (pp/simple-dispatch (freeze-map (->PlaceholderText "<unrealized>") obj))
+
     (instance? LazyMapEntry obj)
     (pp/simple-dispatch
-      (let [raw-value (.val_ obj)]
-        (assoc obj 1 (if (and (delay? raw-value)
-                              (not (realized? raw-value)))
-                       (->PlaceholderText "<unrealized>")
-                       (force raw-value)))))
+     (let [raw-value (.val_ obj)]
+       (assoc obj 1 (if (and (delay? raw-value)
+                             (not (realized? raw-value)))
+                      (->PlaceholderText "<unrealized>")
+                      (force raw-value)))))
     (instance? PlaceholderText obj)
     (pr obj)
+
     :else
     (pp/simple-dispatch obj)))
