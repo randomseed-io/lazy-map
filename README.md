@@ -2,10 +2,9 @@
 
 > Lazy maps for Clojure
 
-[![Travis build status][travis icon]][travis]
-
-[travis]: https://travis-ci.org/raxod502/lazy-map
-[travis icon]: https://travis-ci.org/raxod502/lazy-map.svg?branch=master
+[![lazy-map on Clojars](https://img.shields.io/clojars/v/io.randomseed/lazy-map.svg)](https://clojars.org/io.randomseed/lazy-map)
+[![lazy-map on cljdoc](https://cljdoc.org/badge/io.randomseed/lazy-map)](https://cljdoc.org/d/io.randomseed/lazy-map/CURRENT)
+[![CircleCI](https://circleci.com/gh/randomseed-io/lazy-map.svg?style=svg)](https://circleci.com/gh/randomseed-io/lazy-map)
 
 ## Summary
 
@@ -13,11 +12,48 @@ This library provides a new Clojure data type, the *lazy map*. Lazy
 maps act just like regular (persistent) maps, except that their values
 are not computed until they are requested.
 
+It is based on code from [raxod502](https://github.com/raxod502/lazy-map)
+with 2 important changes:
+
+* Equality method is modified to only compare maps. That prevents from
+  unwanted realization of values when lazy map is compared with booleans,
+  keywords and other objects which will always be different from a lazy map
+  without a need to realize its values.
+
+* Namespace is set to `io.randomseed.lazy-map` and artifact `io.randomseed/lazy-map`
+  to avoid collisions (many lazy map packages are published as `lazy-map/lazy-map`.
+
+## Installation
+
+To use lazy-map in your project, add the following to dependencies section of
+`project.clj` or `build.boot`:
+
+```clojure
+[io.randomseed/lazy-map "1.0.0"]
+```
+
+For `deps.edn` add the following as an element of a map under `:deps` or
+`:extra-deps` key:
+
+```clojure
+io.randomseed/lazy-map {:mvn/version "1.0.0"}
+```
+
+Additionally, if you want to utilize specs and generators provided by the lazy-map
+you can use (in your development profile):
+
+```clojure
+org.clojure/spec.alpha {:mvn/version "0.6.249"}
+org.clojure/test.check {:mvn/version "1.1.3"}
+```
+
+You can also download JAR from [Clojars](https://clojars.org/io.randomseed/lazy-map).
+
 ## Usage
 
 Start by requiring the namespace:
 
-    user> (require '[lazy-map.core :as lm])
+    user> (require '[io.randomseed.lazy-map :as lm])
 
 You can then construct a lazy map using the `lazy-map` macro.
 
@@ -50,14 +86,14 @@ entries have been made lazy as well:
 
     user> (def m (lm/lazy-map {:a (do (println "resolved :a") "value :a")
                                :b (do (println "resolved :b") "value :b")}))
-    #'lazy-map.core/m
-    lazy-map.core> (dorun m)
+    #'io.randomseed.io.randomseed.lazy-map/m
+    io.randomseed.lazy-map> (dorun m)
     nil
-    lazy-map.core> (keys m)
+    io.randomseed.lazy-map> (keys m)
     (:a :b)
-    lazy-map.core> (key (first m))
+    io.randomseed.lazy-map> (key (first m))
     :a
-    lazy-map.core> (val (first m))
+    io.randomseed.lazy-map> (val (first m))
     resolved :a
     "value :a"
 
@@ -105,8 +141,8 @@ of lazy maps.
 
 ## Organization
 
-All the code is currently in the `lazy-map.core` namespace, and the
-unit tests are in the `lazy-map.core-test` namespace.
+All the code is currently in the `io.randomseed.lazy-map` namespace, and the
+unit tests are in the `io.randomseed.lazy-map-test` namespace.
 
 ## See also
 
