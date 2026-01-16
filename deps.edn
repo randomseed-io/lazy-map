@@ -75,9 +75,7 @@
            :deploy    {:paths       ["."]
                        :extra-paths ["aliases/deploy"]
                        :extra-deps  {slipset/deps-deploy {:mvn/version "0.2.2"}}
-                       :ns-default  io.randomseed.lazy-map.deploy.main
-                       :main-opts   ["--installer" "remote"
-                                     "--sign-releases" "true"]}
+                       :ns-default  io.randomseed.lazy-map.deploy.main}
            :dev-nrepl {:jvm-opts    ["-Dnrepl.load=true"]
                        :extra-paths ["aliases/nrepl"]
                        :extra-deps  {cider/cider-nrepl         {:mvn/version "0.58.0"}
