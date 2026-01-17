@@ -1,5 +1,3 @@
 #!/bin/sh
 
-echo "[lazy-map] Building docs, please wait..."
-
 clojure -M:docs "${1}"

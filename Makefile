@@ -1,6 +1,8 @@
 SHELL       := /bin/sh
 BUILD       := bin/build
 DEPLOY      := bin/deploy
+DOCS        := bin/docs
+UPREADME    := bin/update-readme
 
 VERSION     ?= 1.0.2
 GROUP       ?= io.randomseed
@@ -12,6 +14,7 @@ SCM         ?= github.com/randomseed-io/$(APPNAME)
 POMFILE     := pom.xml
 JARNAME     := $(APPNAME)-$(VERSION).jar
 JARFILE     := target/$(APPNAME)-$(VERSION).jar
+DOCPREFIX   := $(GROUP)/$(APPNAME)
 
 .PHONY: default lint docs push-docs
 .PHONY: test test-full
@@ -23,10 +26,15 @@ default: docs
 lint:
 	bin/lint
 
-docs:
-	echo "# Introduction" > doc/10_introduction.md
-	tail -n +2 README.md >> doc/10_introduction.md
-	bin/docs "$(VERSION)"
+readme:
+	@echo "[readme]    -> README.md"
+	@$(UPREADME) "$(DOCPREFIX)" "$(VERSION)" README.md
+
+docs: readme
+	@echo "[docs]      -> docs/"
+	@echo "# Introduction" > doc/10_introduction.md
+	@tail -n +2 README.md >> doc/10_introduction.md
+	@$(DOCS) "$(VERSION)"
 
 push-docs:
 	git subtree push --prefix=docs docs main
