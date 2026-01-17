@@ -1,21 +1,22 @@
-SHELL   := /bin/sh
-BUILD   := bin/build
-DEPLOY  := bin/deploy
-VERSION := $(shell awk 'NF{print $$1; exit}' VERSION)
+SHELL       := /bin/sh
+BUILD       := bin/build
+DEPLOY      := bin/deploy
 
-APPNAME ?= lazy-map
+VERSION     ?= 1.0.2
+GROUP       ?= io.randomseed
+APPNAME     ?= lazy-map
+DESCRIPTION ?= Lazy maps for Clojure
+URL         ?= https://randomseed.io/software/$(APPNAME)/
+SCM         ?= github.com/randomseed-io/$(APPNAME)
 
-POMFILE := pom.xml
-JARFILE := target/$(APPNAME)-$(VERSION).jar
+POMFILE     := pom.xml
+JARNAME     := $(APPNAME)-$(VERSION).jar
+JARFILE     := target/$(APPNAME)-$(VERSION).jar
 
-MVN_SYS_PROPS = \
-  -Daether.checksums.forSignature=true \
-  -Daether.checksums.algorithms=SHA-1,MD5
-
-.PHONY: default lint docs push-docs \
-        test test-full \
-        sync-pom pom jar \
-        deploy sig tag clean
+.PHONY: default lint docs push-docs
+.PHONY: test test-full
+.PHONY: sync-pom pom jar
+.PHONY: deploy sig tag clean
 
 default: docs
 
@@ -39,50 +40,35 @@ test-full:
 	@bin/test-full
 
 sync-pom:
-	@echo "[sync-pom]"
-	$(BUILD) sync-pom
+	@echo "[sync-pom] -> $(POMFILE)"
+	@$(BUILD) sync-pom :group "\"$(GROUP)\"" :name "\"$(APPNAME)\"" :version "\"$(VERSION)\"" :description "\"$(DESCRIPTION)\"" :scm "\"$(SCM)\"" :url "\"$(URL)\""
 
 pom: clean
-	@echo "[pom] -> $(VERSION)"
-	@mvn -f $(POMFILE) versions:set versions:commit -DnewVersion="$(VERSION)"
-	@mvn -f $(POMFILE) versions:set-scm-tag -DnewTag="$(VERSION)"
+	@echo "[pom]      -> $(POMFILE)"
 	@rm -f $(POMFILE).asc
 	@$(MAKE) -s sync-pom
 
 jar: pom
-	@echo "[jar]"
-	@rm -rf target/classes
-	$(BUILD) jar
+	@echo "[jar]      -> $(JARNAME)"
+	@rm -rf target/classes || true
+	@rm -f $(JARFILE) || true
+	@$(BUILD) jar :group "\"$(GROUP)\"" :name "\"$(APPNAME)\"" :version "\"$(VERSION)\""
 
 sig:
-	@echo "[sig]"
-	@rm -f $(POMFILE).asc
-	@gpg2 --armor --detach-sig $(POMFILE)
+	@echo "[sig]      -> $(POMFILE).asc"
+	@rm -f "$(POMFILE).asc" || true
+	@gpg2 --armor --detach-sig "$(POMFILE)"
 
 deploy: clean pom jar
-	@echo "[deploy]"
+	@echo "[deploy]   -> $(GROUP)/$(APPNAME)-$(VERSION)"
 	@test -f "$(JARFILE)" || (echo "Missing $(JARFILE)"; exit 1)
 	@test -f "pom.xml" || (echo "Missing pom.xml"; exit 1)
-	@echo "[deploy] jar=$(JARFILE)"
 	@$(DEPLOY) deploy :artifact "\"$(JARFILE)\""
 	@test -f "$(APPNAME)-$(VERSION).pom.asc" && mv -f "$(APPNAME)-$(VERSION).pom.asc" "$(POMFILE).asc" || true
-
-olddeploy: clean pom jar
-	@echo "[deploy]"
-	@echo "[deploy] MVN_SYS_PROPS=$(MVN_SYS_PROPS)"
-	@mvn $(MVN_SYS_PROPS) gpg:sign-and-deploy-file \
-	  -DgroupId=io.randomseed \
-	  -DartifactId=$(APPNAME) \
-	  -Dversion=$(VERSION) \
-	  -Dpackaging=jar \
-	  -Dfile=$(JARFILE) \
-	  -DpomFile=$(POMFILE) \
-	  -DrepositoryId=clojars \
-	  -Durl=https://repo.clojars.org/
 
 tag:
 	git tag -s "$(VERSION)" -m "Release $(VERSION)"
 
 clean:
-	@rm -f target/*.jar $(POMFILE).asc
+	@rm -f target/*.jar "$(POMFILE).asc" || true
 	@find . -name .DS_Store -print0 | xargs -0 rm -f
