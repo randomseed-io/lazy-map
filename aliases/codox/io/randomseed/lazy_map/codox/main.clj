@@ -39,8 +39,7 @@
         config  (read-edn-config "codox.edn")
         options (get-options deps config version)]
     (codox.main/generate-docs options)
-    (shutdown-agents)
-    (println "Generated HTML docs in" (:output-path options))))
+    (shutdown-agents)))
 
 (defn -main
   [version]
