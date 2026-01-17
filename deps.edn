@@ -56,7 +56,7 @@
                                     com.taoensso/nippy          {:mvn/version "3.6.0"}
                                     expound/expound             {:mvn/version "0.9.0"}
                                     jonase/eastwood             {:mvn/version "1.4.3"}}}
-           :docs      {:extra-paths ["aliases/codox"]
+           :docs      {:extra-paths ["aliases/codox" "dev/resources"]
                        :extra-deps  {org.clojure/tools.deps {:mvn/version "0.28.1569"}
                                      org.clojure/spec.alpha {:mvn/version "0.6.249"}
                                      org.clojure/test.check {:mvn/version "1.1.3"}

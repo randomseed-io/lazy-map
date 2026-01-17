@@ -1,0 +1,8 @@
+{:name        "Lazy Map"
+ :description "Lazy maps for Clojure"
+ :license     "Eclipse Public License 1.0"
+ :package     io.randomseed/lazy-map
+ :output-path "docs"
+ :source-uri  "https://github.com/randomseed-io/lazy-map/tree/{version}/{filepath}#L{line}"
+ :metadata    {:doc/format :markdown}
+ :themes      [:default :randomseed]}
