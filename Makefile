@@ -67,6 +67,8 @@ sig:
 	@rm -f "$(POMFILE).asc" || true
 	@gpg2 --armor --detach-sig "$(POMFILE)"
 
+release: test clean docs jar
+
 deploy: clean pom jar
 	@echo "[deploy]   -> $(GROUP)/$(APPNAME)-$(VERSION)"
 	@test -f "$(JARFILE)" || (echo "Missing $(JARFILE)"; exit 1)
