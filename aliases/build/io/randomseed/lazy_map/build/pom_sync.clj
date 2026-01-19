@@ -45,25 +45,6 @@
       (into (mapcat (fn [ch] [ws-between ch]) children))
       (conj ws-end)))
 
-(defn- loc-local
-  "Local name of current element (ignores XML namespace)."
-  [loc]
-  (some-> loc zip/node :tag name))
-
-(defn- up-to-local
-  "Walks up until local name matches, returns that loc (or nil)."
-  [loc local]
-  (loop [l loc]
-    (cond
-      (nil? l)                       nil
-      (= (loc-local l) (name local)) l
-      :else                          (recur (zip/up l)))))
-
-(defn- last-child-loc [parent-loc]
-  (when-let [d (zip/down parent-loc)]
-    (loop [l d]
-      (if-let [r (zip/right l)] (recur r) l))))
-
 (defn- ws?
   [x]
   (and (string? x) (re-matches #"\s*" x)))
@@ -271,7 +252,7 @@
 
    Rules:
    - {:mvn/version \"x\"} -> \"x\"
-   - {:local/root \"./...\" or \"../...\"} -> local-root-version ONLY when:
+   - {:local/root \"./...\" or \"../...\"} -> local-root-version/version ONLY when:
        * :name option was provided, AND
        * artifact-base(lib) == artifact-base(:name)
      Otherwise for relative local/root: nil (skipped).
@@ -300,6 +281,30 @@
     :else
     nil))
 
+(defn- merge-alias-deps
+  "Return an effective deps after merging with the given aliases.
+   Minimal model:
+   - start: (:deps m)
+   - :replace-deps (if exists in alias) replaces all
+   - :extra-deps adds or overrides (if exists)
+   - :override-deps overrides or adds (if does not exist)"
+  [deps-edn {:keys [aliases]}]
+  (let [base-deps (or (:deps deps-edn) {})
+        alias-m   (or (:aliases deps-edn) {})
+        chosen    (keep alias-m aliases)]
+    (reduce
+     (fn [deps a]
+       (cond
+         (:replace-deps a)
+         (merge (or (:replace-deps a) {}) (or (:override-deps a) {}) (or (:extra-deps a) {}))
+
+         :else
+         (-> deps
+             (merge (or (:extra-deps a) {}))
+             (merge (or (:override-deps a) {})))))
+     base-deps
+     chosen)))
+
 (defn deps->maven-deps
   "Reads deps.edn and returns normalized Maven deps:
    [{:groupId .. :artifactId .. :version ..} ...] sorted deterministically.
@@ -311,7 +316,7 @@
   ([deps-edn-path] (deps->maven-deps deps-edn-path nil))
   ([deps-edn-path opts]
    (let [m    (read-edn-file deps-edn-path)
-         deps (:deps m)]
+         deps (merge-alias-deps m opts)]
      (->> deps
           (keep (fn [[lib coord]]
                   (when-let [v (coord->version lib coord (or opts {}))]
@@ -343,7 +348,8 @@
      :lib-name    (group/name)
      :version     (version)
      :description (description)
-     :local-root-version (default version, then \"${project.version}\")"
+     :local-root-version (fallback to version, then to \"${project.version}\")
+     :aliases     (a list used to get extra dependencies from deps.edn)"
   ([deps-edn-path pom-path]
    (sync-pom-deps! deps-edn-path pom-path nil))
   ([deps-edn-path pom-path opts]

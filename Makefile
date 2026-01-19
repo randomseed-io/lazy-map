@@ -4,7 +4,7 @@ DEPLOY      := bin/deploy
 DOCS        := bin/docs
 UPREADME    := bin/update-readme
 
-VERSION     ?= 1.0.2
+VERSION     ?= 1.0.3
 GROUP       ?= io.randomseed
 APPNAME     ?= lazy-map
 DESCRIPTION ?= Lazy maps for Clojure
@@ -15,8 +15,9 @@ POMFILE     := pom.xml
 JARNAME     := $(APPNAME)-$(VERSION).jar
 JARFILE     := target/$(APPNAME)-$(VERSION).jar
 DOCPREFIX   := $(GROUP)/$(APPNAME)
+AOTNS       := '[io.randomseed.lazy-map]'
 
-.PHONY: default lint docs push-docs
+.PHONY: default lint doc docs push-docs
 .PHONY: test test-full
 .PHONY: sync-pom pom jar
 .PHONY: deploy sig tag clean
@@ -27,14 +28,16 @@ lint:
 	bin/lint
 
 readme:
-	@echo "[readme]    -> README.md"
+	@echo "[readme]   -> README.md"
 	@$(UPREADME) "$(DOCPREFIX)" "$(VERSION)" README.md
 
 docs: readme
-	@echo "[docs]      -> docs/"
+	@echo "[doc]      -> docs/"
 	@echo "# Introduction" > doc/10_introduction.md
 	@tail -n +2 README.md >> doc/10_introduction.md
 	@$(DOCS) "$(VERSION)"
+
+doc: docs
 
 push-docs:
 	git subtree push --prefix=docs docs main
@@ -49,18 +52,28 @@ test-full:
 
 sync-pom:
 	@echo "[sync-pom] -> $(POMFILE)"
-	@$(BUILD) sync-pom :group "\"$(GROUP)\"" :name "\"$(APPNAME)\"" :version "\"$(VERSION)\"" :description "\"$(DESCRIPTION)\"" :scm "\"$(SCM)\"" :url "\"$(URL)\""
+	@$(BUILD) sync-pom                  \
+	  :group       "\"$(GROUP)\""       \
+	  :name        "\"$(APPNAME)\""     \
+	  :version     "\"$(VERSION)\""     \
+	  :description "\"$(DESCRIPTION)\"" \
+	  :scm         "\"$(SCM)\""         \
+	  :url         "\"$(URL)\""
 
 pom: clean
 	@echo "[pom]      -> $(POMFILE)"
-	@rm -f $(POMFILE).asc
+	@rm -f $(POMFILE).asc || true
 	@$(MAKE) -s sync-pom
 
 jar: pom
 	@echo "[jar]      -> $(JARNAME)"
-	@rm -rf target/classes || true
+	@rm -rf target/classes .cpcache || true
 	@rm -f $(JARFILE) || true
-	@$(BUILD) jar :group "\"$(GROUP)\"" :name "\"$(APPNAME)\"" :version "\"$(VERSION)\""
+	@$(BUILD) jar               \
+	  :aot-ns  $(AOTNS)         \
+	  :group   "\"$(GROUP)\""   \
+	  :name    "\"$(APPNAME)\"" \
+	  :version "\"$(VERSION)\""
 
 sig:
 	@echo "[sig]      -> $(POMFILE).asc"
@@ -72,9 +85,11 @@ release: test clean docs jar
 deploy: clean pom jar
 	@echo "[deploy]   -> $(GROUP)/$(APPNAME)-$(VERSION)"
 	@test -f "$(JARFILE)" || (echo "Missing $(JARFILE)"; exit 1)
-	@test -f "pom.xml" || (echo "Missing pom.xml"; exit 1)
-	@$(DEPLOY) deploy :artifact "\"$(JARFILE)\""
-	@test -f "$(APPNAME)-$(VERSION).pom.asc" && mv -f "$(APPNAME)-$(VERSION).pom.asc" "$(POMFILE).asc" || true
+	@test -f "$(POMFILE)" || (echo "Missing $(POMFILE)"; exit 1)
+	@$(DEPLOY) deploy :pom-file "\"$(POMFILE)\"" :artifact "\"$(JARFILE)\""
+	@test -f "$(APPNAME)-$(VERSION).pom.asc" && mv -f "$(APPNAME)-$(VERSION).pom.asc" "sigs/" || true
+	@test -f "target/$(APPNAME)-$(VERSION).pom.asc" && mv -f "target/$(APPNAME)-$(VERSION).pom.asc" "sigs/" || true
+	@test -f "target/$(APPNAME)-$(VERSION).jar.asc" && mv -f "target/$(APPNAME)-$(VERSION).jar.asc" "sigs/" || true
 
 tag:
 	git tag -s "$(VERSION)" -m "Release $(VERSION)"
