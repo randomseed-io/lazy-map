@@ -3,7 +3,7 @@
   <groupId>io.randomseed</groupId>
   <artifactId>lazy-map</artifactId>
   <packaging>jar</packaging>
-  <version>1.0.2</version>
+  <version>1.0.3</version>
   <name>lazy-map</name>
   <description>Lazy maps for Clojure</description>
   <url>https://randomseed.io/software/lazy-map/</url>
@@ -16,7 +16,7 @@
   <scm>
     <connection>scm:git:git://github.com/randomseed-io/lazy-map.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/randomseed-io/lazy-map.git</developerConnection>
-    <tag>1.0.2</tag>
+    <tag>1.0.3</tag>
     <url>https://github.com/randomseed-io/lazy-map/</url>
   </scm>
   <build>
