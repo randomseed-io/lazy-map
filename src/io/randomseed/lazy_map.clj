@@ -309,12 +309,18 @@
     (LazyMap. (.cons (or contents {}) o)))
 
   (equiv [this o]
-    (if (or (instance? clojure.lang.IPersistentMap o)
-            (instance? java.util.Map o))
-      (.equiv
-       ^clojure.lang.IPersistentCollection
-       (into {} this) o)
-      false))
+    (let [clmap? (instance? clojure.lang.IPersistentMap o)]
+      (and (or clmap? (instance? java.util.Map o))
+           (or (identical? this o)
+               (let [this-count  (long (if contents (.count contents) 0))
+                     other-count (long (count o))]
+                 (and (== this-count other-count)
+                      (or (zero? this-count)
+                          (and (every? (if clmap?
+                                         #(.containsKey ^clojure.lang.Associative o %)
+                                         #(.containsKey ^java.util.Map            o %))
+                                       (keys contents))
+                               (.equiv ^clojure.lang.IPersistentCollection (into {} this) o)))))))))
 
   clojure.lang.IPersistentMap
 
