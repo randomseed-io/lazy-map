@@ -15,10 +15,10 @@ actually requested.
 It is based on code from [raxod502](https://github.com/raxod502/lazy-map), with three
 important changes:
 
-* The equality method is modified to **compare only to maps**. This prevents unwanted
-  realization of values when a lazy map is compared with booleans, keywords, or other
-  non-map-like objects, which will always differ from a map anyway so there is no
-  reason to force values.
+* The equality method is modified to **compare only to maps of equal sizes having the
+  same keys**. This prevents unwanted realization of values when a lazy map is
+  compared with booleans, keywords, or other non-map-like objects, which will always
+  differ from a map anyway so there is no reason to force values.
 
 * **The namespace is `io.randomseed.lazy-map`**, and the artifact is
   `io.randomseed/lazy-map`, to prevent collisions (many lazy map packages are
@@ -26,6 +26,8 @@ important changes:
 
 * The JAR includes **AOT-compiled Java classes** so the types are available to
   consumers.
+
+* Additional performance improvements and fixes.
 
 ## Installation
 
@@ -163,7 +165,14 @@ Features unique to `raxod502/lazy-map`:
 Features unique to `io.randomseed/lazy-map`:
 
 * Equality method compares only to maps (so no sentinel will cause accidental
-  realization of values).
-* AOT-compiled Java classes.
+  realization of values). Lazy map is realized only when the following criteria are
+  met:
+    - given object is not the same object as ours,
+    - given object is also a map,
+    - given object has the same, non-zero size, as ours,
+    - given object has the same keys as ours.
 * Artifact group is unique (no name collisions with packages requiring other lazy map
   libraries).
+* Fixed implementation of `clojure.lang.IPersistentCollection/empty`.
+* Simplified implementation of `clojure.lang.IMapIterable/keyIterator`.
+* AOT-compiled Java classes.
