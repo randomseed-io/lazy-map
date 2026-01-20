@@ -276,10 +276,10 @@
          (force (.valAt contents k))))
 
   (valAt [_ k not-found]
-    ;; This will not behave properly if not-found is a Delay,
-    ;; but that's a pretty obscure edge case.
     (and contents
-         (force (.valAt contents k not-found))))
+         (if-some [^clojure.lang.MapEntry me (.entryAt contents k)]
+           (force (.val me))
+           not-found)))
 
   clojure.lang.IMapIterable
 
