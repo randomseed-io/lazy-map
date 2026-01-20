@@ -167,7 +167,7 @@
   (equiv [_ o]
     (cond (nil?   o) false
           (ident? o) false
-          :else      (if-let [t (entry-eq-target o)]
+          :else      (if-some [t (entry-eq-target o)]
                        (.equiv [key_ (force val_)] t)
                        false)))
 
