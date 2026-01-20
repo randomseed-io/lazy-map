@@ -284,9 +284,7 @@
   clojure.lang.IMapIterable
 
   (keyIterator [_]
-    (.iterator
-     ^java.lang.Iterable
-     (keys contents)))
+    (.keyIterator ^clojure.lang.IMapIterable contents))
 
   (valIterator [_]
     (.iterator
