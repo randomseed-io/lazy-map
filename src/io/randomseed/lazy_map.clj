@@ -3,11 +3,17 @@
   "Main namespace, contains utility functions, type definitions, and
   lazy map functions.
 
-  Public API is `->LazyMap`, `->?LazyMap`, `lazy-map`, `force-map`,
-  `freeze-map`, `lazy-map-dispatch`."
+  Public API is:
+
+  - `->LazyMap`,
+  - `->?LazyMap`,
+  - `lazy-map`,
+  - `force-map`,
+  - `freeze-map`,
+  - `lazy-map-dispatch`."
 
   (:require [clojure.pprint :as pp])
-  (:import java.io.Writer))
+  (:import  (java.io Writer)))
 
 ;;;; Utility functions
 
@@ -39,7 +45,7 @@
 (defn map-entry
   "Creates a map entry (as returned by calling seq on a map) with the
   given key and value."
-  [k v]
+  ^clojure.lang.MapEntry [k v]
   (clojure.lang.MapEntry/create k v))
 
 (defn map-keys
@@ -83,7 +89,8 @@
     (instance? java.util.Map$Entry    o)                               o
     (and (instance? clojure.lang.IPersistentVector o) (= 2 (count o))) o
     (and (instance? java.util.List o) (= 2 (.size ^java.util.List o))) o
-    :else                                                              (seq2? o))) ; 2-el. seq or nil
+    :else
+    (seq2? o))) ; 2-el. seq or nil
 
 (deftype LazyMapEntry [key_ val_]
 
