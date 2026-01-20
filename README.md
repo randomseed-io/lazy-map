@@ -15,10 +15,10 @@ actually requested.
 It is based on code from [raxod502](https://github.com/raxod502/lazy-map), with three
 important changes:
 
-* The equality method is modified to **compare only to maps of equal sizes having the
-  same keys**. This prevents unwanted realization of values when a lazy map is
-  compared with booleans, keywords, or other non-map-like objects, which will always
-  differ from a map anyway so there is no reason to force values.
+* The equality method is modified to **compare only to maps having the same
+  keys**. This prevents unwanted realization of values when a lazy map is compared
+  with booleans, keywords, or other non-map-like objects, which will always differ
+  from a map anyway so there is no reason to force values.
 
 * **The namespace is `io.randomseed.lazy-map`**, and the artifact is
   `io.randomseed/lazy-map`, to prevent collisions (many lazy map packages are
@@ -35,13 +35,13 @@ To use `lazy-map` in your project, add the following to the dependencies section
 `project.clj` or `build.boot`:
 
 ```clojure
-[io.randomseed/lazy-map "1.0.3"]
+[io.randomseed/lazy-map "1.0.4"]
 ```
 
 For `deps.edn`, add the following under the `:deps` or `:extra-deps` key:
 
 ```clojure
-io.randomseed/lazy-map {:mvn/version "1.0.3"}
+io.randomseed/lazy-map {:mvn/version "1.0.4"}
 ```
 
 Additionally, if you want to use the specs and generators provided by `lazy-map`, you
@@ -169,7 +169,7 @@ Features unique to `io.randomseed/lazy-map`:
   met:
     - given object is not the same object as ours,
     - given object is also a map,
-    - given object has the same, non-zero size, as ours,
+    - given object has the same (non-zero) count as ours,
     - given object has the same keys as ours.
 * Artifact group is unique (no name collisions with packages requiring other lazy map
   libraries).

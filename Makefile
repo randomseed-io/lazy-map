@@ -4,7 +4,7 @@ DEPLOY      := bin/deploy
 DOCS        := bin/docs
 UPREADME    := bin/update-readme
 
-VERSION     ?= 1.0.3
+VERSION     ?= 1.0.4
 GROUP       ?= io.randomseed
 APPNAME     ?= lazy-map
 DESCRIPTION ?= Lazy maps for Clojure
