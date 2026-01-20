@@ -303,8 +303,7 @@
       0))
 
   (empty [_]
-    (or (not contents)
-        (.empty contents)))
+    (LazyMap. (if contents (.empty contents) {})))
 
   (cons [_ o]
     (LazyMap. (.cons (or contents {}) o)))
