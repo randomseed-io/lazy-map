@@ -73,7 +73,8 @@
 ;;;; LazyMapEntry type
 
 (defn- seq2?
-  "Helper to check if the sequable has 2 elements."
+  "Helper to check if the sequable has 2 elements. Return nil when not a 2-element
+  sequence."
   [o]
   (when (instance? clojure.lang.Seqable o)
     (let [s (seq o)]
@@ -85,10 +86,10 @@
    or returns a 2-element seq for seqables, or nil when not comparable."
   [o]
   (cond
-    (instance? clojure.lang.IMapEntry o)                               o
-    (instance? java.util.Map$Entry    o)                               o
-    (and (instance? clojure.lang.IPersistentVector o) (= 2 (count o))) o
-    (and (instance? java.util.List o) (= 2 (.size ^java.util.List o))) o
+    (instance? clojure.lang.IMapEntry o)                                o
+    (instance? java.util.Map$Entry    o)                                o
+    (and (instance? clojure.lang.IPersistentVector o) (== 2 (count o))) o
+    (and (instance? java.util.List o) (== 2 (.size ^java.util.List o))) o
     :else
     (seq2? o))) ; 2-el. seq or nil
 
